@@ -229,10 +229,15 @@ function gamesTab() {
       ${tile('deep', 'g2 wide', '🕯️', 'Розмови по душах', '30 питань у трьох етапах — від легкого до найособистішого')}
       ${tile('custom', 'g7 wide', '✍️', 'Мої картки', 'Додайте власні питання й завдання в ігри')}
     </div>
+    ${state.level === 'wild' ? `
+    <div class="note warn">
+      😈 <b>Шалено</b> — максимальний рівень. Перед грою домовтеся про стоп-слово: після нього все
+      зупиняється без питань. Пропуск завдання коштує однієї речі одягу, а кожна четверта картка — подвійна.
+    </div>` : `
     <div class="note">
       🛑 Будь-яке завдання можна пропустити. Слово «стоп» означає стоп — граємо лише в межах,
       комфортних для вас обох.
-    </div>`;
+    </div>`}`;
 }
 
 function desiresTab() {
@@ -324,24 +329,30 @@ function tod() {
 // after — екран, куди повернутися після картки (за замовчуванням — до вибору «правда чи дія»).
 function todCard(type, after = tod) {
   const isDare = type === 'dare';
+  const wild = state.level === 'wild';
+  // На рівні «Шалено» кожна четверта картка подвійна, а пропуск коштує речі одягу.
+  const double = wild && Math.random() < 0.25;
+  const seconds = wild ? 120 : 60;
   render(`
     ${header('Правда чи дія')}
     ${scoreboard()}
-    <div class="card">
+    <div class="card ${double ? 'hot' : ''}">
       <div class="tag">${isDare ? '🔥 Дія' : '💬 Правда'} · ${LEVELS[state.level].emoji}</div>
+      ${double ? `<div class="badge">🔥 Подвійно: ${isDare ? 'вдвічі довше або двічі поспіль' : 'відповідай у деталях і дивись в очі'} · +2</div>` : ''}
       <div class="text">${fill(draw(type))}</div>
       <div class="who">для ${esc(me())}</div>
-      ${isDare ? '<div class="timer"></div><button class="btn ghost" id="timer">⏱ Таймер 60 с</button>' : ''}
+      ${isDare ? `<div class="timer"></div><button class="btn ghost" id="timer">⏱ Таймер ${wild ? '2 хв' : '60 с'}</button>` : ''}
     </div>
     <div class="row">
-      <button class="btn ghost" id="skip">Пропустити</button>
-      <button class="btn ok" id="done">✅ Виконано +1</button>
+      <button class="btn ghost" id="skip">${wild ? 'Пропуск = зніми річ 👕' : 'Пропустити'}</button>
+      <button class="btn ok" id="done">✅ Виконано +${double ? 2 : 1}</button>
     </div>
+    ${wild ? '<p class="muted center">Стоп-слово діє завжди — після нього гра зупиняється без питань.</p>' : ''}
   `);
   on('[data-back]', home);
-  on('#timer', () => startTimer(60));
+  on('#timer', () => startTimer(seconds));
   on('#skip', () => { nextTurn(); after(); });
-  on('#done', () => { state.scores[state.turn] += 1; nextTurn(); after(); });
+  on('#done', () => { state.scores[state.turn] += double ? 2 : 1; nextTurn(); after(); });
 }
 
 // ----- Квіз -----

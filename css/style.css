@@ -507,3 +507,13 @@ h2 { font-size: 22px; font-weight: 800; }
   touch-action: none;
 }
 .word { color: var(--yellow); font-size: 30px; }
+
+/* Wild level: double cards */
+.card.hot { box-shadow: 0 0 0 3px var(--accent), 0 16px 50px rgba(255, 61, 127, .45); }
+.badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--accent);
+  font-size: 13px;
+  font-weight: 800;
+}
