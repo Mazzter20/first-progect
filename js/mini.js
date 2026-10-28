@@ -99,13 +99,7 @@ function hockey() {
 
   cv.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    if (winner >= 0) {
-      score[0] = 0;
-      score[1] = 0;
-      winner = -1;
-      serve(Math.random() < 0.5 ? 0 : 1);
-      return;
-    }
+    if (winner >= 0) return;
     const p = pos(e);
     const i = p.y > H / 2 ? 0 : 1;
     owners.set(e.pointerId, i);
@@ -121,7 +115,10 @@ function hockey() {
   function goal(scorer) {
     score[scorer] += 1;
     if (navigator.vibrate) navigator.vibrate(150);
-    if (score[scorer] >= WIN) winner = scorer;
+    if (score[scorer] >= WIN) {
+      winner = scorer;
+      afterWin(() => forfeit(1 - scorer, hockey));
+    }
     serve(1 - scorer);
   }
 
@@ -219,11 +216,9 @@ function hockey() {
       ctx.fillRect(0, 0, W, H);
       [0, 1].forEach((i) => {
         const top = i === 1;
-        const text = i === winner ? '🏆 Перемога!' : 'Цього разу ні 😏';
+        const text = i === winner ? '🏆 Перемога!' : 'Тебе чекає фант 😏';
         sideText(ctx, W, H, top, text, W / 2, H * 0.72, `900 30px ${FONT}`, PLAYER_COLORS[i]);
-        sideText(ctx, W, H, top, 'Торкніться, щоб зіграти ще', W / 2, H * 0.8, `600 16px ${FONT}`, '#fff');
       });
-      sideText(ctx, W, H, false, 'Переможець обирає завдання для іншого', W / 2, H / 2, `700 15px ${FONT}`, '#ffd23f');
     }
   }
 
@@ -266,7 +261,7 @@ function hippos() {
 
   cv.addEventListener('pointerdown', (e) => {
     e.preventDefault();
-    if (over()) return reset();
+    if (over()) return;
     const i = pos(e).y > H / 2 ? 0 : 1;
     if (hippoState[i].t < 0) hippoState[i].t = 0;
   });
@@ -395,15 +390,19 @@ function hippos() {
       [0, 1].forEach((i) => {
         const mine = hippoState[i].score;
         const other = hippoState[1 - i].score;
-        const text = a === b ? 'Нічия! 🤝' : mine > other ? '🏆 Найситніший!' : 'Голодний 😢';
-        sideText(ctx, W, H, i === 1, text, W / 2, H * 0.7, `900 28px ${FONT}`, PLAYER_COLORS[i]);
-        sideText(ctx, W, H, i === 1, 'Торкніться, щоб зіграти ще', W / 2, H * 0.78, `600 16px ${FONT}`, '#fff');
+        const text = a === b ? 'Нічия! Фант — за жеребом 🎲' : mine > other ? '🏆 Найситніший!' : 'Голодний — і з фантом 😏';
+        sideText(ctx, W, H, i === 1, text, W / 2, H * 0.7, `900 22px ${FONT}`, PLAYER_COLORS[i]);
       });
     }
   }
 
+  let finished = false;
   loop((dt) => {
     if (!over()) update(dt);
+    else if (!finished) {
+      finished = true;
+      afterWin(() => forfeitBy(hippoState.map((h) => h.score), hippos));
+    }
     draw();
   });
 }

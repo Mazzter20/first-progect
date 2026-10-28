@@ -10,7 +10,7 @@ const state = {
 };
 
 let timerId = null;
-let cleanup = null;
+let cleanups = [];
 
 // ---------- Утиліти ----------
 
@@ -80,15 +80,16 @@ function stopTimer() {
   timerId = null;
 }
 
-// Реєструє функцію, яка зупинить анімації та звук, коли гравці підуть з екрана.
+// Реєструє функцію, яка зупинить анімації, таймери та звук, коли гравці підуть з екрана.
 function onLeave(fn) {
-  cleanup = fn;
+  cleanups.push(fn);
 }
 
 function render(html) {
   stopTimer();
-  if (cleanup) cleanup();
-  cleanup = null;
+  const pending = cleanups;
+  cleanups = [];
+  pending.forEach((fn) => fn());
   app.innerHTML = html;
   window.scrollTo(0, 0);
 }
@@ -111,7 +112,7 @@ function header(title) {
 function levelChips() {
   return `<div class="levels">${Object.entries(LEVELS).map(([key, l]) => `
     <button class="chip ${key === state.level ? 'active' : ''}" data-level="${key}">
-      ${l.emoji} ${l.name}
+      ${l.emoji}<br>${l.name}
     </button>`).join('')}</div>`;
 }
 
@@ -252,11 +253,14 @@ function miniTab() {
   return `
     <div class="hero">
       <h1>Міні-ігри</h1>
-      <p class="muted">Удвох на одному телефоні: кожен грає зі свого боку екрана</p>
+      <p class="muted">Удвох на одному телефоні. Хто програв — отримує фант 😏</p>
     </div>
     <div class="games">
       ${tile('hockey', 'g4', '🏒', 'Аерохокей', 'До 7 голів')}
       ${tile('hippos', 'g5', '🦛', 'Щасливі бегемоти', 'Хто з’їсть більше кульок')}
+      ${tile('reaction', 'g6', '⚡', 'Хто швидший', 'Тисни першим, коли загориться')}
+      ${tile('tug', 'g1', '🪢', 'Перетягування', 'Тапай швидше за партнера')}
+      ${tile('draw', 'g2 wide', '🎨', 'Малюй і вгадуй', 'Один малює слово, інший вгадує')}
     </div>`;
 }
 
@@ -356,8 +360,10 @@ function quiz() {
       <button class="btn ghost" id="no">❌ Ні</button>
       <button class="btn ok" id="yes">✅ Вгадав(ла) +1</button>
     </div>
+    <button class="btn ghost" id="finish">🏁 Завершити — фант тому, хто програв</button>
   `);
   bindCommon(quiz);
+  on('#finish', () => forfeitBy(state.scores, home));
   on('#no', () => { nextTurn(); quiz(); });
   on('#yes', () => { state.scores[state.turn] += 1; nextTurn(); quiz(); });
 }
