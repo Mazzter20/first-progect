@@ -18,7 +18,8 @@ function poses(filter = 'all', idx = 0) {
     <p class="muted center">Спробували ${saved.tried.length} з ${DATA.poses.length}</p>
     ${pose ? `
       <div class="card pose">
-        <div class="pose-emoji">${pose.emoji}</div>
+        ${poseSvg(pose.name) || `<div class="pose-emoji">${pose.emoji}</div>`}
+        <p class="muted pose-legend">схема · ${pose.emoji}</p>
         <div class="tag">${'🔥'.repeat(pose.level)} · ${['', 'легко', 'середньо', 'для сміливих'][pose.level]}</div>
         <div class="text">${pose.name}</div>
         <p class="pose-how">${pose.how}</p>

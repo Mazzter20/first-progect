@@ -565,3 +565,5 @@ h2 { font-size: 22px; font-weight: 800; }
   resize: vertical;
 }
 .bulk textarea:focus { border-color: var(--accent); }
+.pose-art { display: block; width: 100%; max-width: 360px; height: auto; max-height: 220px; border-radius: 16px; background: rgba(0, 0, 0, .18); }
+.pose-legend { font-size: 12px; margin-top: -4px; }
