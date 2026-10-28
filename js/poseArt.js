@@ -1,4 +1,4 @@
-// Схематичні малюнки поз: дві умовні фігурки-манекени у вигляді збоку, без анатомічних деталей.
+// Схематичні малюнки поз: дві фігурки-манекени у вигляді збоку — тілесні тони, без анатомічних деталей.
 // Фігура — [голова x,y, плече x,y, таз x,y, коліно x,y, стопа x,y, кисть x,y] у полотні 200×120.
 
 const POSE_ART = {
@@ -26,36 +26,89 @@ const POSE_ART = {
   'Метелик': { props: ['edge'], a: [30, 63, 42, 64, 104, 64, 114, 42, 118, 20, 60, 70], b: [124, 20, 123, 31, 119, 68, 121, 85, 120, 100, 112, 44] },
   'Тачка': { props: ['floor'], a: [74, 88, 84, 84, 130, 62, 150, 56, 166, 64, 78, 100], b: [146, 15, 145, 26, 141, 62, 148, 84, 150, 100, 132, 62] },
   'У душі': { props: ['wall', 'shower'], a: [141, 24, 141, 35, 140, 70, 137, 86, 140, 100, 132, 42], b: [117, 24, 119, 35, 125, 70, 127, 86, 121, 100, 136, 42] },
+  'Навколішки обличчям': { props: ['bed'], a: [89, 26, 90, 37, 92, 72, 96, 98, 70, 99, 106, 46], b: [111, 26, 110, 37, 108, 72, 104, 98, 130, 99, 94, 46] },
+  'Сфінкс': { props: ['bed'], a: [44, 77, 54, 85, 95, 94, 118, 88, 140, 96, 46, 98], b: [60, 73, 70, 79, 104, 86, 128, 90, 152, 91, 56, 90] },
+  'Перед диваном': { props: ['sofa'], a: [117, 28, 116, 39, 112, 72, 88, 74, 84, 100, 100, 58], b: [88, 41, 80, 50, 64, 74, 64, 99, 40, 100, 98, 70] },
+  'Ложечки стоячи': { props: ['floor'], a: [100, 22, 100, 33, 102, 68, 100, 84, 102, 100, 92, 52], b: [116, 20, 114, 32, 112, 68, 114, 85, 116, 100, 98, 46] },
+  'Гойдалка': { props: ['bed'], a: [128, 50, 122, 59, 98, 86, 80, 80, 70, 96, 140, 96], b: [72, 52, 76, 62, 90, 96, 115, 96, 145, 98, 62, 98] },
+  'Павук': { props: ['bed'], a: [56, 56, 62, 65, 85, 94, 100, 80, 118, 92, 50, 98], b: [144, 56, 138, 65, 115, 94, 100, 82, 82, 92, 150, 98] },
+  'Колінами до грудей': { props: ['bed'], a: [38, 92, 50, 93, 92, 92, 76, 66, 98, 58, 70, 72], b: [107, 36, 106, 47, 102, 82, 98, 98, 128, 99, 90, 62] },
+  'Ззаду з подушками': { props: ['bed', 'pillows'], a: [40, 81, 52, 85, 96, 66, 100, 98, 128, 99, 44, 96], b: [116, 22, 114, 33, 106, 68, 110, 98, 140, 99, 98, 64] },
+  'Кенгуру': { props: ['floor'], a: [100, 20, 102, 31, 106, 64, 128, 62, 132, 80, 116, 30], b: [119, 15, 117, 26, 114, 62, 118, 82, 116, 100, 98, 60] },
+  'Наїзниця нахилившись': { props: ['bed'], a: [38, 92, 50, 93, 95, 93, 122, 93, 148, 95, 72, 92], b: [46, 80, 58, 84, 94, 86, 76, 96, 100, 98, 50, 92] },
+  'Зворотне крісло': { props: ['chair'], a: [96, 18, 98, 29, 104, 62, 80, 70, 76, 98, 84, 50], b: [115, 22, 114, 33, 110, 68, 86, 68, 86, 100, 94, 56] },
+  'Сходи': { props: ['stairs'], a: [79, 24, 80, 35, 84, 68, 108, 72, 112, 98, 98, 52], b: [125, 20, 126, 31, 128, 62, 124, 85, 150, 86, 110, 46] },
 };
 
 const PROP = 'rgba(255,255,255,.18)';
 
 function poseProps(props) {
   const parts = {
-    bed: `<rect x="8" y="100" width="184" height="9" rx="4" fill="${PROP}"/>`,
+    bed: `<rect x="8" y="100" width="184" height="10" rx="5" fill="${PROP}"/><rect x="10" y="94" width="26" height="7" rx="3.5" fill="rgba(255,255,255,.12)"/>`,
     floor: `<rect x="8" y="100" width="184" height="4" rx="2" fill="${PROP}"/>`,
     wall: `<rect x="150" y="6" width="8" height="98" rx="3" fill="${PROP}"/><rect x="8" y="100" width="184" height="4" rx="2" fill="${PROP}"/>`,
     edge: `<rect x="10" y="70" width="100" height="10" rx="4" fill="${PROP}"/><rect x="14" y="80" width="6" height="22" fill="${PROP}"/><rect x="100" y="80" width="6" height="22" fill="${PROP}"/><rect x="8" y="100" width="184" height="4" rx="2" fill="${PROP}"/>`,
     chair: `<rect x="80" y="70" width="44" height="7" rx="3" fill="${PROP}"/><rect x="120" y="30" width="6" height="47" rx="3" fill="${PROP}"/><rect x="82" y="77" width="5" height="25" fill="${PROP}"/><rect x="117" y="77" width="5" height="25" fill="${PROP}"/><rect x="8" y="100" width="184" height="4" rx="2" fill="${PROP}"/>`,
     table: `<rect x="20" y="70" width="56" height="7" rx="3" fill="${PROP}"/><rect x="24" y="77" width="5" height="25" fill="${PROP}"/><rect x="67" y="77" width="5" height="25" fill="${PROP}"/><rect x="8" y="100" width="184" height="4" rx="2" fill="${PROP}"/>`,
     table2: `<rect x="50" y="70" width="64" height="7" rx="3" fill="${PROP}"/><rect x="54" y="77" width="5" height="25" fill="${PROP}"/><rect x="105" y="77" width="5" height="25" fill="${PROP}"/><rect x="8" y="100" width="184" height="4" rx="2" fill="${PROP}"/>`,
+    sofa: `<rect x="96" y="66" width="64" height="12" rx="5" fill="${PROP}"/><rect x="146" y="34" width="14" height="44" rx="6" fill="${PROP}"/><rect x="100" y="78" width="6" height="24" fill="${PROP}"/><rect x="150" y="78" width="6" height="24" fill="${PROP}"/><rect x="8" y="100" width="184" height="4" rx="2" fill="${PROP}"/>`,
+    pillows: `<rect x="22" y="88" width="34" height="13" rx="6" fill="rgba(255,255,255,.28)"/><rect x="30" y="80" width="30" height="11" rx="5" fill="rgba(255,255,255,.22)"/>`,
+    stairs: `<rect x="20" y="70" width="80" height="34" fill="${PROP}"/><rect x="100" y="86" width="60" height="18" fill="${PROP}"/><rect x="8" y="100" width="184" height="4" rx="2" fill="${PROP}"/>`,
     shower: `<path d="M150 10 h-22 v6" stroke="${PROP}" stroke-width="4" fill="none" stroke-linecap="round"/>${[112, 120, 128, 136].map((x, i) => `<line x1="${x}" y1="${22 + (i % 2) * 6}" x2="${x - 2}" y2="${30 + (i % 2) * 6}" stroke="#6fc3ff" stroke-width="2" stroke-linecap="round" opacity=".7"/>`).join('')}`,
   };
   return props.map((p) => parts[p] || '').join('');
 }
 
-function poseFigure(f, color) {
+// Звужений сегмент тіла (стегно, гомілка, плече…) з округлими кінцями.
+function limb(x1, y1, x2, y2, w1, w2, color) {
+  const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+  const nx = -(y2 - y1) / len;
+  const ny = (x2 - x1) / len;
+  const pt = (x, y, w, sign) => `${(x + sign * nx * w / 2).toFixed(1)},${(y + sign * ny * w / 2).toFixed(1)}`;
+  return `<polygon points="${pt(x1, y1, w1, 1)} ${pt(x2, y2, w2, 1)} ${pt(x2, y2, w2, -1)} ${pt(x1, y1, w1, -1)}" fill="${color}"/>`
+    + `<circle cx="${x1}" cy="${y1}" r="${w1 / 2}" fill="${color}"/><circle cx="${x2}" cy="${y2}" r="${w2 / 2}" fill="${color}"/>`;
+}
+
+// Лікоть: трохи зміщена середина між плечем і кистю, щоб рука була природно зігнута.
+function elbow(sx, sy, ax, ay) {
+  const len = Math.hypot(ax - sx, ay - sy) || 1;
+  return [(sx + ax) / 2 + (-(ay - sy) / len) * len * 0.12, (sy + ay) / 2 + ((ax - sx) / len) * len * 0.12];
+}
+
+// Фігура-манекен: дальня рука й нога темнішим тоном позаду, тулуб із талією, голова з волоссям.
+function poseFigure(f, tone) {
   const [hx, hy, sx, sy, px, py, kx, ky, fx, fy, ax, ay] = f;
-  const line = (x1, y1, x2, y2, w) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${w}" stroke-linecap="round"/>`;
+  const [dx, dy] = [3.5, -2.5]; // зсув дальніх кінцівок для глибини
+  const wx = sx + (px - sx) * 0.55;
+  const wy = sy + (py - sy) * 0.55;
+  const [ex, ey] = elbow(sx, sy, ax, ay);
+  const arm = (o, c) => limb(sx + o[0], sy + o[1], ex + o[0], ey + o[1], 5.5, 4.6, c)
+    + limb(ex + o[0], ey + o[1], ax + o[0], ay + o[1], 4.6, 3.6, c)
+    + `<circle cx="${ax + o[0]}" cy="${ay + o[1]}" r="2.9" fill="${c}"/>`;
+  const leg = (o, c) => limb(px + o[0], py + o[1], kx + o[0], ky + o[1], 9.5, 7, c)
+    + limb(kx + o[0], ky + o[1], fx + o[0], fy + o[1], 6.8, 4.4, c)
+    + `<circle cx="${fx + o[0]}" cy="${fy + o[1]}" r="3.1" fill="${c}"/>`;
+  const nlen = Math.hypot(hx - sx, hy - sy) || 1;
+  const neckX = sx + (hx - sx) / nlen * 4;
+  const neckY = sy + (hy - sy) / nlen * 4;
   return `
     <g>
-      ${line(sx, sy, px, py, 10)}
-      ${line(px, py, kx, ky, 7)}
-      ${line(kx, ky, fx, fy, 6)}
-      ${line(sx, sy, ax, ay, 5)}
-      <circle cx="${hx}" cy="${hy}" r="7.5" fill="${color}"/>
+      ${leg([dx, dy], tone.far)}
+      ${arm([dx, dy], tone.far)}
+      ${limb(sx, sy, wx, wy, 15, 10.5, tone.body)}
+      ${limb(wx, wy, px, py, 10.5, 13.5, tone.body)}
+      ${limb(sx, sy, neckX, neckY, 5, 5, tone.body)}
+      ${leg([0, 0], tone.body)}
+      <circle cx="${hx}" cy="${hy}" r="7.6" fill="${tone.body}"/>
+      <path d="M${hx - 7.8} ${hy - 0.5} a7.8 7.8 0 0 1 15.6 0 q-7.8 -3.6 -15.6 0z" fill="${tone.hair}"/>
+      ${arm([0, 0], tone.body)}
     </g>`;
 }
+
+const TONES = {
+  a: { body: '#f3c6a5', far: '#d49f7e', hair: '#6b3a22' },
+  b: { body: '#b8774c', far: '#8f5a36', hair: '#24160f' },
+};
 
 // Повертає SVG-схему пози або порожній рядок, якщо схеми немає.
 function poseSvg(name) {
@@ -68,7 +121,7 @@ function poseSvg(name) {
   return `
     <svg class="pose-art" viewBox="0 ${114 - height} 200 ${height}" role="img" aria-label="Схема пози «${name}»">
       ${poseProps(art.props)}
-      ${poseFigure(art.b, '#c8ff3d')}
-      ${poseFigure(art.a, '#e53dff')}
+      ${poseFigure(art.b, TONES.b)}
+      ${poseFigure(art.a, TONES.a)}
     </svg>`;
 }

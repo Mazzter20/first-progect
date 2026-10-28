@@ -60,7 +60,35 @@ const CUSTOM_TYPES = {
   quiz: 'Квіз',
 };
 
-function custom(type = 'truth') {
+// Заголовки, за якими список розкладається по типах карток.
+const BULK_HEADERS = { 'ПРАВДА': 'truth', 'ДІЯ': 'dare', 'ДІЇ': 'dare', 'Я НІКОЛИ НЕ': 'never', 'КВІЗ': 'quiz' };
+const headerOf = (text) => BULK_HEADERS[text.toUpperCase().replace(/[:.…\s]+$/, '').trim()];
+
+// Розбирає вставлений список: рядок-заголовок перемикає тип, решта рядків — картки.
+// Заголовок, що «приклеївся» в кінець рядка («…тебе?ДІЯ»), теж розпізнається.
+function parseBulk(text, defaultType) {
+  const result = {};
+  let type = defaultType;
+  text.split('\n').forEach((raw) => {
+    let line = raw.trim().replace(/^(\d+[.)]|[-•*])\s*/, '');
+    if (!line) return;
+    if (headerOf(line)) {
+      type = headerOf(line);
+      return;
+    }
+    const glued = line.match(/^(.*[.!?…»])\s*(ПРАВДА|ДІЯ|ДІЇ|Я НІКОЛИ НЕ|КВІЗ)[:.…]?$/i);
+    let next = null;
+    if (glued) {
+      line = glued[1].trim();
+      next = headerOf(glued[2]);
+    }
+    (result[type] = result[type] || []).push(line);
+    if (next) type = next;
+  });
+  return result;
+}
+
+function custom(type = 'truth', notice = '') {
   const list = customCards(type, state.level);
 
   render(`
@@ -75,10 +103,11 @@ function custom(type = 'truth') {
       <p class="muted">Напишіть {p} там, де має бути ім’я партнера.</p>
       <button class="btn primary" type="submit">Додати</button>
     </form>
+    ${notice ? `<p class="note">${esc(notice)}</p>` : ''}
     <details class="bulk">
       <summary>📋 Додати одразу списком</summary>
       <div class="field">
-        <label for="bulkText">Кожен рядок — окрема картка</label>
+        <label for="bulkText">Кожен рядок — окрема картка. Рядки «ПРАВДА», «ДІЯ», «Я НІКОЛИ НЕ», «КВІЗ» перемикають тип.</label>
         <textarea id="bulkText" rows="6" placeholder="Перша картка&#10;Друга картка&#10;Третя картка"></textarea>
         <button class="btn" id="bulkAdd">Додати всі</button>
       </div>
@@ -107,8 +136,18 @@ function custom(type = 'truth') {
     if (text) save(list.concat(text));
   });
   on('#bulkAdd', () => {
-    const lines = $('#bulkText').value.split('\n').map((t) => t.trim()).filter(Boolean);
-    if (lines.length) save(list.concat(lines));
+    const parsed = parseBulk($('#bulkText').value, type);
+    const types = Object.keys(parsed);
+    if (!types.length) return;
+    const all = store('custom') || {};
+    types.forEach((t) => {
+      all[t] = all[t] || {};
+      all[t][state.level] = (all[t][state.level] || []).concat(parsed[t]);
+    });
+    store('custom', all);
+    state.decks = {};
+    const summary = types.map((t) => `${CUSTOM_TYPES[t]} — ${parsed[t].length}`).join(', ');
+    custom(type, `Додано на рівень ${LEVELS[state.level].emoji} ${LEVELS[state.level].name}: ${summary}.`);
   });
   on('[data-del]', (e) => save(list.filter((_, i) => i !== Number(e.currentTarget.dataset.del))));
 }
