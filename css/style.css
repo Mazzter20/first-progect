@@ -253,3 +253,6 @@ h2 { font-size: 22px; font-weight: 800; }
 }
 
 .spacer { flex: 1; }
+
+.error { color: var(--accent); font-weight: 700; text-align: center; }
+[hidden] { display: none !important; }

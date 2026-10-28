@@ -146,14 +146,17 @@ function setup() {
       <span>Нам обом виповнилося 18 років, і ми граємо за взаємною згодою.</span>
     </label>
     <div class="spacer"></div>
+    <p class="error" id="error" hidden></p>
     <button class="btn primary" id="go">Почати гру</button>
   `);
 
   on('#go', () => {
     const n1 = app.querySelector('#n1').value.trim();
     const n2 = app.querySelector('#n2').value.trim();
-    if (!n1 || !n2) return alert('Введіть імена обох гравців');
-    if (!app.querySelector('#adult').checked) return alert('Гра призначена лише для дорослих 18+');
+    const error = app.querySelector('#error');
+    error.hidden = false;
+    if (!n1 || !n2) return (error.textContent = 'Введіть імена обох гравців');
+    if (!app.querySelector('#adult').checked) return (error.textContent = 'Гра призначена лише для дорослих 18+');
     state.names = [n1, n2];
     store('names', state.names);
     store('adult', true);
