@@ -517,3 +517,51 @@ h2 { font-size: 22px; font-weight: 800; }
   font-size: 13px;
   font-weight: 800;
 }
+
+/* Positions */
+.filters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.filters .chip { font-size: 12px; padding: 10px 2px; }
+.pose { gap: 10px; }
+.pose-emoji { font-size: 64px; line-height: 1; }
+.pose-how { font-size: 17px; line-height: 1.45; }
+.pose-line { font-size: 14px; line-height: 1.45; color: var(--muted); }
+.pose-line b { color: var(--text); }
+
+/* Hot bomb */
+.bomb { font-size: 80px; line-height: 1; animation: tick 1s ease-in-out infinite; }
+.bomb.boom { animation: none; font-size: 96px; }
+@keyframes tick { 50% { transform: scale(1.15) rotate(-6deg); } }
+
+/* Strip setup */
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--card);
+}
+.stepper b { flex: 1; min-width: 0; font-size: 17px; }
+.stepper span { width: 32px; text-align: center; font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums; }
+
+/* Escalation */
+.stages { display: flex; justify-content: center; gap: 14px; font-size: 26px; }
+.stages span { opacity: .25; transition: opacity .3s; }
+.stages span.on { opacity: 1; }
+
+/* Bulk add */
+.bulk { background: var(--card); border-radius: 16px; padding: 14px 16px; }
+.bulk summary { font-weight: 700; cursor: pointer; }
+.bulk .field { margin-top: 12px; }
+.bulk textarea {
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 12px;
+  font: inherit;
+  font-size: 16px;
+  background: var(--bg-2);
+  color: var(--text);
+  outline: none;
+  resize: vertical;
+}
+.bulk textarea:focus { border-color: var(--accent); }

@@ -75,6 +75,14 @@ function custom(type = 'truth') {
       <p class="muted">Напишіть {p} там, де має бути ім’я партнера.</p>
       <button class="btn primary" type="submit">Додати</button>
     </form>
+    <details class="bulk">
+      <summary>📋 Додати одразу списком</summary>
+      <div class="field">
+        <label for="bulkText">Кожен рядок — окрема картка</label>
+        <textarea id="bulkText" rows="6" placeholder="Перша картка&#10;Друга картка&#10;Третя картка"></textarea>
+        <button class="btn" id="bulkAdd">Додати всі</button>
+      </div>
+    </details>
     <div class="match-list">
       ${list.length ? list.map((t, i) => `
         <div class="match custom-row"><span>${esc(t)}</span><button class="icon-btn" data-del="${i}" aria-label="Видалити">✕</button></div>
@@ -97,6 +105,10 @@ function custom(type = 'truth') {
     e.preventDefault();
     const text = $('#cardText').value.trim();
     if (text) save(list.concat(text));
+  });
+  on('#bulkAdd', () => {
+    const lines = $('#bulkText').value.split('\n').map((t) => t.trim()).filter(Boolean);
+    if (lines.length) save(list.concat(lines));
   });
   on('[data-del]', (e) => save(list.filter((_, i) => i !== Number(e.currentTarget.dataset.del))));
 }
