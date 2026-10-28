@@ -39,10 +39,16 @@ function shuffle(arr) {
 }
 
 // Тягне картку з колоди без повторів, доки колода не закінчиться.
+// Власні картки гравців: { truth: { romantic: [...] }, ... }.
+function customCards(type, level) {
+  const custom = store('custom') || {};
+  return (custom[type] && custom[type][level]) || [];
+}
+
 function draw(type) {
   const key = `${type}.${state.level}`;
   if (!state.decks[key] || state.decks[key].length === 0) {
-    state.decks[key] = shuffle(DATA[type][state.level]);
+    state.decks[key] = shuffle(DATA[type][state.level].concat(customCards(type, state.level)));
   }
   return state.decks[key].pop();
 }
@@ -127,12 +133,13 @@ function bindCommon(onLevel) {
 
 function startTimer(seconds) {
   const el = app.querySelector('.timer');
+  const format = (sec) => (seconds >= 60 ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : sec);
   let left = seconds;
   stopTimer();
-  el.textContent = left;
+  el.textContent = format(left);
   timerId = setInterval(() => {
     left -= 1;
-    el.textContent = left > 0 ? left : '⏰ Час!';
+    el.textContent = left > 0 ? format(left) : '⏰ Час!';
     if (left <= 0) {
       stopTimer();
       if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
@@ -218,6 +225,8 @@ function gamesTab() {
       ${tile('roulette', 'g7', '👆', 'Рулетка дотику', 'Пальці на екран — хтось обраний')}
       ${tile('massage', 'g8', '💆', 'Релакс-масаж', 'Покроково, з таймером і звуком')}
       ${tile('vibe', 'g9', '📳', 'Вібромасажер', 'Сила й ритм вібрації · Android')}
+      ${tile('deep', 'g2 wide', '🕯️', 'Розмови по душах', '30 питань у трьох етапах — від легкого до найособистішого')}
+      ${tile('custom', 'g7 wide', '✍️', 'Мої картки', 'Додайте власні питання й завдання в ігри')}
     </div>
     <div class="note">
       🛑 Будь-яке завдання можна пропустити. Слово «стоп» означає стоп — граємо лише в межах,

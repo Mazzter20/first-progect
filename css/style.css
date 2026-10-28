@@ -450,3 +450,9 @@ h2 { font-size: 22px; font-weight: 800; }
   transition: transform 2s linear, background 2s linear;
 }
 .unlock.holding { transform: scale(1.25); background: var(--accent); }
+
+/* Custom cards */
+.custom-row { display: flex; align-items: center; gap: 10px; }
+.custom-row span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.custom-row .icon-btn { width: 36px; height: 36px; font-size: 15px; }
+#addForm { gap: 10px; }
