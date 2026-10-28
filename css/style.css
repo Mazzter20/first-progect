@@ -118,6 +118,7 @@ h2 { font-size: 22px; font-weight: 800; }
 .g6 small { color: rgba(16, 36, 15, .75); }
 .g7 { background: linear-gradient(135deg, #6b1fd1, #241066); }
 .g8 { background: linear-gradient(135deg, #8a3b2a, #4a1630); }
+.g9 { background: linear-gradient(135deg, #9b1b6e, #3a0a2c); }
 
 /* Scoreboard */
 .score {
@@ -368,3 +369,84 @@ h2 { font-size: 22px; font-weight: 800; }
 /* Mini games */
 .arena { display: block; width: 100%; border-radius: var(--radius); touch-action: none; user-select: none; -webkit-user-select: none; }
 .card .row { width: 100%; }
+
+/* Vibe massager */
+.vtrack {
+  --lvl: 0;
+  position: relative;
+  width: 128px;
+  height: min(360px, 46vh);
+  margin: 4px auto 0;
+  border-radius: 64px;
+  background: var(--card);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  flex-shrink: 0;
+}
+.vfill {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 0;
+  background: linear-gradient(0deg, #9b1b6e, var(--accent));
+  opacity: calc(.45 + var(--lvl) * .55);
+}
+.vlevel {
+  position: absolute;
+  top: 22px; left: 0; right: 0;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--yellow);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.vthumb {
+  position: absolute;
+  left: 8px; right: 8px; bottom: 0;
+  height: 128px;
+  margin-bottom: 0;
+  border: 8px solid #e53dff;
+  border-radius: 56px;
+  background: #fff;
+  box-shadow: 0 0 calc(var(--lvl) * 40px) #e53dff;
+  pointer-events: none;
+}
+.vtrack.active .vthumb { animation: buzz .08s infinite; }
+@keyframes buzz {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(calc(var(--lvl) * 3px)); }
+}
+.modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.modes .chip { white-space: normal; line-height: 1.5; font-size: 12px; }
+.note.warn { background: rgba(255, 61, 127, .15); color: var(--text); }
+.lock {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 32px max(16px, env(safe-area-inset-right, 0px)) 32px max(16px, env(safe-area-inset-left, 0px));
+  background: rgba(10, 3, 20, .92);
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.unlock {
+  width: 110px; height: 110px;
+  border: 4px solid var(--yellow);
+  border-radius: 50%;
+  background: var(--card-2);
+  font-size: 44px;
+  cursor: pointer;
+  transition: transform 2s linear, background 2s linear;
+}
+.unlock.holding { transform: scale(1.25); background: var(--accent); }
