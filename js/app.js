@@ -6,9 +6,11 @@ const state = {
   turn: 0,
   scores: [0, 0],
   decks: {},
+  tab: 'games',
 };
 
 let timerId = null;
+let cleanup = null;
 
 // ---------- Утиліти ----------
 
@@ -49,6 +51,13 @@ function pick(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+const $ = (selector) => app.querySelector(selector);
+
+// Як fill(), але без HTML-екранування — для тексту на canvas.
+function plain(text) {
+  return text.replaceAll('{p}', partner()).replaceAll('{me}', me());
+}
+
 const me = () => state.names[state.turn];
 const partner = () => state.names[1 - state.turn];
 
@@ -65,8 +74,15 @@ function stopTimer() {
   timerId = null;
 }
 
+// Реєструє функцію, яка зупинить анімації та звук, коли гравці підуть з екрана.
+function onLeave(fn) {
+  cleanup = fn;
+}
+
 function render(html) {
   stopTimer();
+  if (cleanup) cleanup();
+  cleanup = null;
   app.innerHTML = html;
   window.scrollTo(0, 0);
 }
@@ -164,47 +180,95 @@ function setup() {
   });
 }
 
-function home() {
-  render(`
-    <div class="top">
-      <span style="width:44px"></span>
-      <h2>${esc(state.names[0])} 💞 ${esc(state.names[1])}</h2>
-      <button class="icon-btn" id="edit" aria-label="Змінити гравців">⚙️</button>
-    </div>
+const TABS = [
+  ['games', '💞', 'Ігри'],
+  ['desires', '🃏', 'Бажання'],
+  ['mini', '🕹️', 'Міні-ігри'],
+];
+
+function tabBar() {
+  return `<nav class="tabs">${TABS.map(([key, icon, label]) => `
+    <button class="${key === state.tab ? 'active' : ''}" data-tab="${key}">
+      <span>${icon}</span>${label}
+    </button>`).join('')}</nav>`;
+}
+
+function tile(game, cls, emoji, title, sub) {
+  return `
+    <button class="game ${cls}" data-game="${game}">
+      <span class="emoji">${emoji}</span>
+      <span><b>${title}</b><small>${sub}</small></span>
+    </button>`;
+}
+
+function gamesTab() {
+  return `
     <div class="hero">
       <h1>100+ ігор<br>для пари</h1>
       <p class="muted">Оберіть рівень і гру</p>
     </div>
     ${levelChips()}
     <div class="games">
-      <button class="game g1 wide" data-game="tod">
-        <span class="emoji">🎭</span>
-        <span><b>Правда чи дія</b><small>Чесні відповіді та сміливі завдання</small></span>
-      </button>
-      <button class="game g2" data-game="quiz">
-        <span class="emoji">🧠</span>
-        <span><b>Квіз для пари</b><small>Наскільки добре ви знаєте одне одного?</small></span>
-      </button>
-      <button class="game g3" data-game="never">
-        <span class="emoji">🙈</span>
-        <span><b>Я ніколи не…</b><small>Зізнання без осуду</small></span>
-      </button>
-      <button class="game g4" data-game="wyr">
-        <span class="emoji">⚖️</span>
-        <span><b>Що б ти обрав(ла)?</b><small>Перевірте вашу сумісність</small></span>
-      </button>
-      <button class="game g5" data-game="dice">
-        <span class="emoji">🎲</span>
-        <span><b>Кубики пристрасті</b><small>Дія + місце + час</small></span>
-      </button>
+      ${tile('tod', 'g1 wide', '🎭', 'Правда чи дія', 'Чесні відповіді та сміливі завдання')}
+      ${tile('quiz', 'g2', '🧠', 'Квіз для пари', 'Наскільки добре ви знаєте одне одного?')}
+      ${tile('never', 'g3', '🙈', 'Я ніколи не…', 'Зізнання без осуду')}
+      ${tile('wyr', 'g4', '⚖️', 'Що б ти обрав(ла)?', 'Перевірте вашу сумісність')}
+      ${tile('dice', 'g5', '🎲', 'Кубики пристрасті', 'Дія + місце + час')}
+      ${tile('wheel', 'g6', '🎡', 'Колесо', 'Крути й виконуй')}
+      ${tile('roulette', 'g7', '👆', 'Рулетка дотику', 'Пальці на екран — хтось обраний')}
+      ${tile('massage', 'g8 wide', '💆', 'Релакс-масаж', 'Покрокова програма з таймером і спокійним звуком')}
     </div>
     <div class="note">
       🛑 Будь-яке завдання можна пропустити. Слово «стоп» означає стоп — граємо лише в межах,
       комфортних для вас обох.
+    </div>`;
+}
+
+function desiresTab() {
+  return `
+    <div class="big-icon">🃏</div>
+    <h1>Чого хочете ви обоє?</h1>
+    <ol class="steps">
+      <li><b>1</b>Кожен по черзі гортає ідеї для побачень і близькості</li>
+      <li><b>2</b>Відповідає чесно: так, можливо чи ні</li>
+      <li><b>3</b>Гра покаже лише те, що хочете ви обоє</li>
+    </ol>
+    ${levelChips()}
+    <button class="btn primary" data-game="desires">Почати з партнером</button>
+    <p class="note">«Ні» партнера ніхто не побачить — у результатах лише збіги.</p>`;
+}
+
+function miniTab() {
+  return `
+    <div class="hero">
+      <h1>Міні-ігри</h1>
+      <p class="muted">Удвох на одному телефоні: кожен грає зі свого боку екрана</p>
     </div>
+    <div class="games">
+      ${tile('hockey', 'g4', '🏒', 'Аерохокей', 'До 7 голів')}
+      ${tile('hippos', 'g5', '🦛', 'Щасливі бегемоти', 'Хто з’їсть більше кульок')}
+    </div>`;
+}
+
+function home() {
+  const body = { games: gamesTab, desires: desiresTab, mini: miniTab }[state.tab]();
+  render(`
+    <div class="top">
+      <span style="width:44px"></span>
+      <h2>${esc(state.names[0])} 💞 ${esc(state.names[1])}</h2>
+      <button class="icon-btn" id="edit" aria-label="Змінити гравців">⚙️</button>
+    </div>
+    ${body}
+    <div class="tab-space"></div>
+    ${tabBar()}
   `);
 
   on('#edit', setup);
+  on('[data-tab]', (e) => {
+    state.tab = e.currentTarget.dataset.tab;
+    store('tab', state.tab);
+    home();
+  });
   on('[data-level]', (e) => {
     state.level = e.currentTarget.dataset.level;
     store('level', state.level);
@@ -243,7 +307,8 @@ function tod() {
   });
 }
 
-function todCard(type) {
+// after — екран, куди повернутися після картки (за замовчуванням — до вибору «правда чи дія»).
+function todCard(type, after = tod) {
   const isDare = type === 'dare';
   render(`
     ${header('Правда чи дія')}
@@ -261,8 +326,8 @@ function todCard(type) {
   `);
   on('[data-back]', home);
   on('#timer', () => startTimer(60));
-  on('#skip', () => { nextTurn(); tod(); });
-  on('#done', () => { state.scores[state.turn] += 1; nextTurn(); tod(); });
+  on('#skip', () => { nextTurn(); after(); });
+  on('#done', () => { state.scores[state.turn] += 1; nextTurn(); after(); });
 }
 
 // ----- Квіз -----
@@ -425,11 +490,3 @@ function dice() {
 }
 
 const GAMES = { tod, quiz, never, wyr, dice };
-
-// ---------- Старт ----------
-
-state.names = store('names') || ['', ''];
-state.level = LEVELS[store('level')] ? store('level') : 'romantic';
-
-if (state.names[0] && state.names[1] && store('adult')) home();
-else setup();
