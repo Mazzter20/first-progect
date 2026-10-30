@@ -5,9 +5,11 @@ const COLORS = ['#ff3d7f', '#a64dff', '#ff8a3d', '#3d8bff', '#e53dff', '#6b1fd1'
 // ----- Колесо -----
 
 function wheel() {
-  const items = DATA.wheel[state.level];
+  // Не більше 12 секторів — інакше підписи на телефоні нечитабельні.
+  const pool = DATA.wheel[state.level] || [];
+  const items = pool.length <= 12 ? pool.slice() : shuffle(pool).slice(0, 12);
   const size = 600;
-  const seg = (2 * Math.PI) / items.length;
+  const seg = (2 * Math.PI) / Math.max(items.length, 1);
   let angle = 0;
   let spinning = false;
 
@@ -20,13 +22,22 @@ function wheel() {
     </div>
     <div class="card small">
       <div class="tag">🎡 Хід: ${esc(me())}</div>
-      <div class="text" id="wtext">Крути колесо!</div>
+      <div class="text" id="wtext">${items.length ? 'Крути колесо!' : 'Немає карток на цьому рівні'}</div>
     </div>
-    <button class="btn primary" id="spin">Крутити</button>
+    <button class="btn primary" id="spin" ${items.length ? '' : 'disabled'}>Крутити</button>
+    ${pool.length > 12 ? '<p class="muted center">З великої колоди цього разу випадкові 12 секторів</p>' : ''}
   `);
   bindCommon(wheel);
 
-  const ctx = $('#wheel').getContext('2d');
+  const canvas = $('#wheel');
+  const cssSize = Math.min(canvas.clientWidth || 300, 360);
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  canvas.style.width = `${cssSize}px`;
+  canvas.style.height = `${cssSize}px`;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   let frame = null;
   onLeave(() => cancelAnimationFrame(frame));
 
@@ -73,14 +84,15 @@ function wheel() {
 
   // Сектор під стрілкою, яка дивиться вгору (кут -π/2).
   function current() {
+    if (!items.length) return { t: '—', d: '' };
     const a = ((-Math.PI / 2 - angle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-    return items[Math.floor(a / seg)];
+    return items[Math.floor(a / seg) % items.length];
   }
 
-  draw();
+  if (items.length) draw();
 
   on('#spin', (e) => {
-    if (spinning) return;
+    if (spinning || !items.length) return;
     spinning = true;
     const btn = e.currentTarget;
     btn.disabled = true;

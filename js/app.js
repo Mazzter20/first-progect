@@ -2,15 +2,21 @@ const app = document.getElementById('app');
 
 const state = {
   names: ['', ''],
+  // 'm' — хлопець, 'f' — дівчина. Потрібно, щоб картки не були «дивними».
+  genders: ['m', 'f'],
   level: 'romantic',
   turn: 0,
   scores: [0, 0],
   decks: {},
   tab: 'games',
+  // Статистика поточної сесії (підсумок вечора).
+  session: { cards: 0, dares: 0, truths: 0, forfeits: 0, games: 0 },
 };
 
 let timerId = null;
 let cleanups = [];
+// За сесію показуємо попередження про стоп-слово лише раз.
+let wildConsentOk = false;
 
 // ---------- Утиліти ----------
 
@@ -48,9 +54,23 @@ function customCards(type, level) {
 function draw(type) {
   const key = `${type}.${state.level}`;
   if (!state.decks[key] || state.decks[key].length === 0) {
-    state.decks[key] = shuffle(DATA[type][state.level].concat(customCards(type, state.level)));
+    const base = (DATA[type] && DATA[type][state.level]) || [];
+    const pack = base.concat(customCards(type, state.level));
+    if (!pack.length) {
+      return type === 'wyr'
+        ? ['Немає карток на цьому рівні', 'Додайте свої у «Мої картки»']
+        : 'Немає карток на цьому рівні. Додайте свої у «Мої картки» або оберіть інший рівень.';
+    }
+    state.decks[key] = shuffle(pack);
   }
   return state.decks[key].pop();
+}
+
+// Скидає колоди поточного рівня (кнопка «нова колода»).
+function reshuffleDecks() {
+  Object.keys(state.decks).forEach((k) => {
+    if (k.endsWith(`.${state.level}`)) delete state.decks[k];
+  });
 }
 
 function pick(arr) {
@@ -59,16 +79,131 @@ function pick(arr) {
 
 const $ = (selector) => app.querySelector(selector);
 
-// Як fill(), але без HTML-екранування — для тексту на canvas.
-function plain(text) {
-  return text.replaceAll('{p}', partner()).replaceAll('{me}', me());
-}
-
 const me = () => state.names[state.turn];
 const partner = () => state.names[1 - state.turn];
+const genderMe = () => state.genders[state.turn] || 'm';
+const genderPartner = () => state.genders[1 - state.turn] || 'f';
+
+// Літери українського слова (для регулярних виразів: \b з кирилицею не працює).
+const LETTERS = 'а-яіїєґА-ЯІЇЄҐ\'’';
+
+// Займенники про партнера: «він/вона», «він(вона)», «його/її»… — обираємо за статтю партнера.
+const PARTNER_PRONOUNS = [
+  ['він', 'вона'], ['його', 'її'], ['йому', 'їй'], ['ним', 'нею'], ['нього', 'неї'], ['ньому', 'ній'],
+];
+
+// Слова, жіночу форму яких не вивести за правилом.
+const IRREGULAR_FEMININE = {
+  'міг': 'могла', 'зміг': 'змогла', 'допоміг': 'допомогла', 'ліг': 'лягла', 'ніс': 'несла',
+  'пішов': 'пішла', 'прийшов': 'прийшла', 'вийшов': 'вийшла', 'зайшов': 'зайшла',
+  'твій': 'твоя', 'мій': 'моя', 'свій': 'своя', 'весь': 'уся', 'один': 'одна',
+};
+
+const sameCase = (model, word) => (model[0] === model[0].toUpperCase() ? word[0].toUpperCase() + word.slice(1) : word);
+
+// Жіноча форма за підказкою в дужках: зробив(ла), закохався(лася), готовий(а), вдячний(на), збудженим(ою), голого(у).
+function feminine(base, hint) {
+  const irregular = IRREGULAR_FEMININE[base.toLowerCase()];
+  if (irregular) return sameCase(base, irregular);
+  switch (hint) {
+    case 'ла':
+      return /в$/.test(base) ? `${base.slice(0, -1)}ла` : `${base}ла`;
+    case 'лася':
+      return /вся$/.test(base) ? `${base.slice(0, -3)}лася` : `${base.replace(/ся$/, '')}лася`;
+    case 'а':
+    case 'на':
+      return /ий$/.test(base) ? `${base.slice(0, -2)}а` : `${base}а`;
+    case 'ою':
+      return /[иі]м$/.test(base) ? `${base.slice(0, -2)}ою` : `${base}ою`;
+    case 'у':
+      return /ого$/.test(base) ? `${base.slice(0, -3)}у` : `${base}у`;
+    default:
+      return base + hint;
+  }
+}
+
+// Підставляє стать: займенники, закінчення і анатомічні варіанти (мінет/куні тощо).
+// Закінчення в дужках узгоджуються з тим, хто виконує дію: за замовчуванням — той, чий хід,
+// але якщо щойно перед словом ішлося про партнера ({p}, «він/вона»), — партнер.
+function genderize(text) {
+  const gMe = genderMe();
+  const gP = genderPartner();
+  const pick2 = (m, f, who) => (who === 'm' ? m : f);
+
+  let t = String(text);
+
+  // 1. Займенники про партнера — через «/» чи в дужках, у будь-якому порядку («він/вона», «її/його»).
+  const cap = (w) => w[0].toUpperCase() + w.slice(1);
+  PARTNER_PRONOUNS.forEach(([m, f]) => {
+    [[m, f], [f, m]].forEach(([first, second]) => {
+      const re = new RegExp(`(?<![${LETTERS}])(${first}|${cap(first)})(?:\\/|\\()${second}\\)?(?![${LETTERS}])`, 'g');
+      t = t.replace(re, (full, word) => sameCase(word, pick2(m, f, gP)));
+    });
+  });
+
+  // 2. Закінчення в дужках. Ідемо по тексту зліва направо й відстежуємо, про кого мова.
+  const token = new RegExp(`\\{p\\}|\\{me\\}|[,.!?:;—«»]|([${LETTERS}]+)\\(([${LETTERS}/]+)\\)|[${LETTERS}]+`, 'g');
+  let subject = 'me';
+  let distance = 0; // слів від останньої згадки партнера
+  t = t.replace(token, (tok, base, hint) => {
+    if (tok === '{p}') { subject = 'partner'; distance = 0; return tok; }
+    if (tok === '{me}') { subject = 'me'; return tok; }
+    if (/^[,.!?:;—«»]$/.test(tok)) { subject = 'me'; return tok; } // розділовий знак — нова частина речення
+    if (!base) {
+      const word = tok.toLowerCase();
+      if (word === 'він' || word === 'вона') { subject = 'partner'; distance = 0; }
+      else if (word === 'ти') subject = 'me';
+      else if (subject === 'partner' && ++distance > 4) subject = 'me';
+      return tok;
+    }
+    const who = subject === 'partner' ? gP : gMe;
+    if (subject === 'partner') distance = 0;
+    if (hint.includes('/') && hint !== 'ла/ло') {
+      const [mForm, fForm] = hint.split('/');
+      return base + (who === 'm' ? mForm : fForm);
+    }
+    return who === 'm' ? base : feminine(base, hint === 'ла/ло' ? 'ла' : hint);
+  });
+
+  // 3. Анатомія / акти щодо тіла партнера.
+  t = t
+    .replace(/мінет\s*\/\s*кунілінгус/gi, pick2('мінет', 'кунілінгус', gP))
+    .replace(/кунілінгус\s*\/\s*мінет/gi, pick2('мінет', 'кунілінгус', gP))
+    .replace(/член\s*\/\s*клітор/gi, pick2('член', 'клітор', gP))
+    .replace(/клітор\s*\/\s*член/gi, pick2('член', 'клітор', gP))
+    .replace(/член\s*\/\s*пальці/gi, pick2('член', 'пальці', gP))
+    .replace(/головку\s*\/\s*клітор/gi, pick2('головку', 'клітор', gP))
+    .replace(/клітор\s*\/\s*головку/gi, pick2('головку', 'клітор', gP))
+    .replace(/яйця\s*\/\s*зовнішні губи/gi, pick2('яйця', 'зовнішні губи', gP))
+    .replace(/груди\s*\/\s*соски/gi, 'соски');
+
+  // Анатомія щодо себе ({me}), якщо явно «твій/твоя».
+  t = t
+    .replace(/твій член\s*\/\s*клітор/gi, pick2('твій член', 'твій клітор', gMe))
+    .replace(/свій член\s*\/\s*клітор/gi, pick2('свій член', 'свій клітор', gMe));
+
+  // Ролі в тексті фантів тощо.
+  t = t
+    .replace(/переможець/g, pick2('переможець', 'переможниця', gP))
+    .replace(/Переможець/g, pick2('Переможець', 'Переможниця', gP));
+
+  return t;
+}
+
+// Як fill(), але без HTML-екранування — для тексту на canvas.
+function plain(text) {
+  return genderize(String(text)).replaceAll('{p}', partner()).replaceAll('{me}', me());
+}
 
 function fill(text) {
-  return esc(text).replaceAll('{p}', esc(partner())).replaceAll('{me}', esc(me()));
+  return esc(genderize(String(text))).replaceAll('{p}', esc(partner())).replaceAll('{me}', esc(me()));
+}
+
+function trackCard(type) {
+  state.session.cards += 1;
+  if (type === 'dare') state.session.dares += 1;
+  if (type === 'truth') state.session.truths += 1;
+  if (type === 'forfeit') state.session.forfeits += 1;
 }
 
 function nextTurn() {
@@ -122,13 +257,60 @@ function scoreboard(labels = state.scores) {
   `).join('')}</div>`;
 }
 
+// Екран згоди перед рівнем «Шалено»: стоп-слово, згода обох, можливість повернутися.
+function confirmWildLevel(onAccept, onCancel) {
+  if (wildConsentOk) {
+    onAccept();
+    return;
+  }
+  render(`
+    <div class="hero">
+      <div class="logo">😈</div>
+      <h1>Рівень «Шалено»</h1>
+      <p class="muted">Найвідвертіший режим. Перед стартом — короткі правила.</p>
+    </div>
+    <div class="card">
+      <div class="text" style="font-size:17px;line-height:1.45">
+        <p><b>Стоп-слово обов’язкове.</b> Оберіть разом слово (наприклад «червоний» або «стоп»). Після нього гра одразу зупиняється — без питань і образ.</p>
+        <p style="margin-top:12px"><b>Тільки за згодою обох.</b> Будь-яку картку можна пропустити. Нічого не робимо «через силу».</p>
+        <p style="margin-top:12px"><b>Після гри</b> — вода, обійми, перевірка, що всім ок.</p>
+      </div>
+    </div>
+    <div class="field">
+      <label for="stopword">Ваше стоп-слово (необов’язково зберегти)</label>
+      <input id="stopword" type="text" placeholder="наприклад: червоний" value="${esc(store('stopword') || '')}" maxlength="40">
+    </div>
+    <button class="btn primary" id="ok">Ми готові · увімкнути Шалено</button>
+    <button class="btn ghost" id="back">Назад до інших рівнів</button>
+  `);
+  on('#ok', () => {
+    const w = (app.querySelector('#stopword').value || '').trim();
+    if (w) store('stopword', w);
+    wildConsentOk = true;
+    onAccept();
+  });
+  on('#back', () => onCancel());
+}
+
+function setLevel(key, redraw) {
+  if (key === 'wild' && !wildConsentOk) {
+    confirmWildLevel(() => {
+      state.level = 'wild';
+      store('level', 'wild');
+      redraw();
+    }, redraw);
+    return;
+  }
+  state.level = key;
+  store('level', key);
+  redraw();
+}
+
 // Підключає кнопку «назад» та перемикач рівня; onLevel перемальовує поточну гру.
 function bindCommon(onLevel) {
   on('[data-back]', home);
   on('[data-level]', (e) => {
-    state.level = e.currentTarget.dataset.level;
-    store('level', state.level);
-    onLevel();
+    setLevel(e.currentTarget.dataset.level, onLevel);
   });
 }
 
@@ -150,7 +332,16 @@ function startTimer(seconds) {
 
 // ---------- Екрани ----------
 
+function genderPick(i, current) {
+  return `
+    <div class="gender-row" data-gi="${i}">
+      <button type="button" class="chip gender ${current === 'm' ? 'active' : ''}" data-g="m">👦 Хлопець</button>
+      <button type="button" class="chip gender ${current === 'f' ? 'active' : ''}" data-g="f">👧 Дівчина</button>
+    </div>`;
+}
+
 function setup() {
+  const g = state.genders;
   render(`
     <div class="hero">
       <div class="logo">💞</div>
@@ -160,11 +351,14 @@ function setup() {
     <div class="field">
       <label for="n1">Гравець 1</label>
       <input id="n1" maxlength="20" placeholder="Ім’я" value="${esc(state.names[0])}">
+      ${genderPick(0, g[0])}
     </div>
     <div class="field">
       <label for="n2">Гравець 2</label>
       <input id="n2" maxlength="20" placeholder="Ім’я" value="${esc(state.names[1])}">
+      ${genderPick(1, g[1])}
     </div>
+    <p class="muted center">Стать потрібна, щоб завдання не були дивними (мінет/куні, займенники тощо).</p>
     <label class="check">
       <input type="checkbox" id="adult" ${store('adult') ? 'checked' : ''}>
       <span>Нам обом виповнилося 18 років, і ми граємо за взаємною згодою.</span>
@@ -173,6 +367,14 @@ function setup() {
     <p class="error" id="error" hidden></p>
     <button class="btn primary" id="go">Почати гру</button>
   `);
+
+  on('.gender-row .chip', (e) => {
+    const row = e.currentTarget.closest('.gender-row');
+    const i = Number(row.dataset.gi);
+    const gVal = e.currentTarget.dataset.g;
+    state.genders[i] = gVal;
+    row.querySelectorAll('.chip').forEach((c) => c.classList.toggle('active', c.dataset.g === gVal));
+  });
 
   on('#go', () => {
     const n1 = app.querySelector('#n1').value.trim();
@@ -183,6 +385,7 @@ function setup() {
     if (!app.querySelector('#adult').checked) return (error.textContent = 'Гра призначена лише для дорослих 18+');
     state.names = [n1, n2];
     store('names', state.names);
+    store('genders', state.genders);
     store('adult', true);
     home();
   });
@@ -212,8 +415,8 @@ function tile(game, cls, emoji, title, sub) {
 function gamesTab() {
   return `
     <div class="hero">
-      <h1>100+ ігор<br>для пари</h1>
-      <p class="muted">Оберіть рівень і гру</p>
+      <h1>15+ ігор<br>для пари</h1>
+      <p class="muted">Сотні карток · чотири рівні · один телефон</p>
     </div>
     ${levelChips()}
     <div class="games">
@@ -229,7 +432,7 @@ function gamesTab() {
       ${tile('vibe', 'g9', '📳', 'Вібромасажер', 'Сила й ритм вібрації · Android')}
       ${tile('bomb', 'g3', '💣', 'Гаряча бомба', 'Передавай, поки не вибухнула')}
       ${tile('strip', 'g1', '👕', 'Роздягання', 'Відмова — мінус річ')}
-      ${tile('poses', 'g9 wide', '🔥', 'Пози', '24 пози з порадами: від легких до сміливих')}
+      ${tile('poses', 'g9 wide', '🔥', 'Пози', '36 поз зі схемами А/Б: від легких до сміливих')}
       ${tile('deep', 'g2 wide', '🕯️', 'Розмови по душах', '30 питань у трьох етапах — від легкого до найособистішого')}
       ${tile('custom', 'g7 wide', '✍️', 'Мої картки', 'Додайте власні питання й завдання в ігри')}
     </div>
@@ -241,7 +444,10 @@ function gamesTab() {
     <div class="note">
       🛑 Будь-яке завдання можна пропустити. Слово «стоп» означає стоп — граємо лише в межах,
       комфортних для вас обох.
-    </div>`}`;
+    </div>`}
+    ${state.session.cards > 0 ? `
+    <button class="btn ghost" data-game="sessionSummary">📊 Підсумок вечора · ${state.session.cards} карток</button>
+    ` : ''}`;
 }
 
 function desiresTab() {
@@ -293,9 +499,7 @@ function home() {
     home();
   });
   on('[data-level]', (e) => {
-    state.level = e.currentTarget.dataset.level;
-    store('level', state.level);
-    home();
+    setLevel(e.currentTarget.dataset.level, home);
   });
   on('[data-game]', (e) => {
     state.turn = 0;
@@ -321,12 +525,18 @@ function tod() {
       <button class="btn dare" data-pick="dare">Дія</button>
     </div>
     <button class="btn ghost" data-pick="random">🎲 Випадково</button>
+    <button class="btn ghost" id="reshuffle">🔄 Нова колода</button>
   `);
   bindCommon(tod);
   on('[data-pick]', (e) => {
     let type = e.currentTarget.dataset.pick;
     if (type === 'random') type = pick(['truth', 'dare']);
     todCard(type);
+  });
+  on('#reshuffle', () => {
+    reshuffleDecks();
+    const who = app.querySelector('.who');
+    if (who) who.textContent = 'Колоду перемішано — обирай знову';
   });
 }
 
@@ -337,6 +547,7 @@ function todCard(type, after = tod) {
   // На рівні «Шалено» кожна четверта картка подвійна, а пропуск коштує речі одягу.
   const double = wild && Math.random() < 0.25;
   const seconds = wild ? 120 : 60;
+  trackCard(type);
   render(`
     ${header('Правда чи дія')}
     ${scoreboard()}
@@ -351,7 +562,7 @@ function todCard(type, after = tod) {
       <button class="btn ghost" id="skip">${wild ? 'Пропуск = зніми річ 👕' : 'Пропустити'}</button>
       <button class="btn ok" id="done">✅ Виконано +${double ? 2 : 1}</button>
     </div>
-    ${wild ? '<p class="muted center">Стоп-слово діє завжди — після нього гра зупиняється без питань.</p>' : ''}
+    ${wild ? `<p class="muted center">Стоп-слово${store('stopword') ? ` «${esc(store('stopword'))}»` : ''} діє завжди — після нього гра зупиняється без питань.</p>` : ''}
   `);
   on('[data-back]', home);
   on('#timer', () => startTimer(seconds));
@@ -520,4 +731,32 @@ function dice() {
   });
 }
 
-const GAMES = { tod, quiz, never, wyr, dice };
+function sessionSummary() {
+  const s = state.session;
+  const tried = (store('poses') || {}).tried || [];
+  render(`
+    ${header('Підсумок вечора')}
+    <div class="card">
+      <div class="tag">📊 Ця сесія</div>
+      <div class="text">${esc(state.names[0])} 💞 ${esc(state.names[1])}</div>
+      <div class="who">
+        Карток: <b>${s.cards}</b><br>
+        Правда: <b>${s.truths}</b> · Дія: <b>${s.dares}</b><br>
+        Фантів: <b>${s.forfeits}</b><br>
+        Поз у «спробували»: <b>${tried.length}</b> / ${(DATA.poses || []).length}
+      </div>
+    </div>
+    <p class="muted center">${state.genders[0] === 'm' ? '👦' : '👧'} ${esc(state.names[0])} · ${state.genders[1] === 'm' ? '👦' : '👧'} ${esc(state.names[1])}</p>
+    <div class="row">
+      <button class="btn ghost" id="resetSession">Скинути лічильник</button>
+      <button class="btn primary" data-back>На головну</button>
+    </div>
+  `);
+  on('[data-back]', home);
+  on('#resetSession', () => {
+    state.session = { cards: 0, dares: 0, truths: 0, forfeits: 0, games: 0 };
+    sessionSummary();
+  });
+}
+
+const GAMES = { tod, quiz, never, wyr, dice, sessionSummary };

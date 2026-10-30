@@ -19,7 +19,7 @@ function poses(filter = 'all', idx = 0) {
     ${pose ? `
       <div class="card pose">
         ${poseSvg(pose.name) || `<div class="pose-emoji">${pose.emoji}</div>`}
-        <p class="muted pose-legend">схема · ${pose.emoji}</p>
+        <p class="muted pose-legend">схема · А світліший · Б темніший · ${pose.emoji}</p>
         <div class="tag">${'🔥'.repeat(pose.level)} · ${['', 'легко', 'середньо', 'для сміливих'][pose.level]}</div>
         <div class="text">${pose.name}</div>
         <p class="pose-how">${pose.how}</p>

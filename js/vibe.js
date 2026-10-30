@@ -49,9 +49,10 @@ function vibe() {
   render(`
     ${header('Вібромасажер')}
     <div class="note warn" id="vwarn" ${supported ? 'hidden' : ''}>
-      Цей браузер не вміє вібрувати. Відкрийте гру в Chrome на Android.
-      На iPhone вебсторінки вібрацію не підтримують.
+      <b>Вібрація працює лише в Chrome на Android</b> (сайт має бути відкритий як звичайна сторінка, не завжди з ярлика).
+      На iPhone / Safari / більшості браузерів iOS вібрація сторінок <b>недоступна</b> — це обмеження системи, не гри.
     </div>
+    ${supported ? '<p class="muted center">Підказка: якщо не вібрує — відкрийте гру в Chrome Android не з «Додати на екран», а просто з вкладки.</p>' : ''}
     <div class="vtrack" id="vtrack" role="slider" aria-label="Сила вібрації" aria-valuemin="0" aria-valuemax="100" tabindex="0">
       <div class="vfill" id="vfill"></div>
       <div class="vlevel" id="vlevel">Вимк.</div>

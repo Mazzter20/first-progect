@@ -111,6 +111,7 @@ const TONES = {
 };
 
 // Повертає SVG-схему пози або порожній рядок, якщо схеми немає.
+// Підписи «А» і «Б» біля голів, щоб було зрозуміло, хто є хто.
 function poseSvg(name) {
   const art = POSE_ART[name];
   if (!art) return '';
@@ -118,10 +119,21 @@ function poseSvg(name) {
   const ys = [art.a, art.b].flatMap((f) => f.filter((_, i) => i % 2 === 1));
   const top = art.props.includes('wall') || art.props.includes('shower') ? 4 : Math.min(...ys) - 14;
   const height = Math.max(56, 114 - top);
+  const label = (f, letter, fill) => {
+    const [hx, hy] = f;
+    const lx = Math.max(10, Math.min(190, hx));
+    const ly = Math.max(top + 10, hy - 12);
+    return `<g>
+      <circle cx="${lx}" cy="${ly}" r="7" fill="${fill}" opacity=".92"/>
+      <text x="${lx}" y="${ly + 3.5}" text-anchor="middle" font-size="9" font-weight="700" fill="#1a0a14" font-family="system-ui,sans-serif">${letter}</text>
+    </g>`;
+  };
   return `
     <svg class="pose-art" viewBox="0 ${114 - height} 200 ${height}" role="img" aria-label="Схема пози «${name}»">
       ${poseProps(art.props)}
       ${poseFigure(art.b, TONES.b)}
       ${poseFigure(art.a, TONES.a)}
+      ${label(art.a, 'А', TONES.a.body)}
+      ${label(art.b, 'Б', TONES.b.body)}
     </svg>`;
 }
